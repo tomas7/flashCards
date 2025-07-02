@@ -19,45 +19,16 @@ import { Button } from "./ui/button"
 export function MainNav() {
   return (
     <div className="flex items-center gap-4">
-      <CustomLink href="/">
-        <Button variant="ghost" className="p-0">
-          <Image
-            src="/logo.png"
-            alt="Home"
-            width="32"
-            height="32"
-            className="min-w-8"
-          />
-        </Button>
-      </CustomLink>
+
       <NavigationMenu>
         <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger className="px-2">
-              Server Side
-            </NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                <ListItem href="/server-example" title="RSC Example">
-                  Protecting React Server Component.
-                </ListItem>
-                <ListItem href="/middleware-example" title="Middleware Example">
-                  Using Middleware to protect pages & APIs.
-                </ListItem>
-                <ListItem href="/api-example" title="Route Handler Example">
-                  Getting the session inside an API Route.
-                </ListItem>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink
-              href="/client-example"
-              className={navigationMenuTriggerStyle()}
-            >
-              Client Side
-            </NavigationMenuLink>
-          </NavigationMenuItem>
+              <NavigationMenuLink href="/">
+      Home
+</NavigationMenuLink>
+            <NavigationMenuLink href="/admin">
+      Admin
+</NavigationMenuLink>
+
         </NavigationMenuList>
       </NavigationMenu>
     </div>

@@ -1,4 +1,5 @@
 import type { Session } from "next-auth"
+import FlipCard from "./flash-cards"
 
 export default function SessionData({ session }: { session: Session | null }) {
   if (session?.user) {
