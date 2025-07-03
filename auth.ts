@@ -34,6 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GitHub,
     Google
   ],
+  secret: process.env.NEXTAUTH_SECRET,
   basePath: "/auth",
   session: { strategy: "jwt" },
   callbacks: {
