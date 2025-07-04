@@ -32,7 +32,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Atlassian,
    
     GitHub,
-    Google
+    Google({
+    clientId: process.env.AUTH_GOOGLE_ID!,
+    clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+  }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
   basePath: "/auth",
