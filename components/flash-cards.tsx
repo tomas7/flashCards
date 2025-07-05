@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useLayoutEffect } from "react";
 import styles from "./page.module.css";
 import words from "../data/words.json";
 import { Session } from "next-auth";
 import { getCards } from "../actions/getCards"; // adjust path if needed
+import { Heart } from "lucide-react"; // or any icon library you prefer
+import { toggleFavourite } from "@/actions/toggleFavourite";
 
 type FlipCardProps = {
   session: Session;
@@ -14,18 +16,70 @@ export default function FlipCard({ session }: FlipCardProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [userCards, setUserCards] = useState<any[]>([]); // state for DB results
+const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+const [categories, setCategories] = useState<string[]>([]);
 
-  const currentWord = words[index];
+const filteredCards = useMemo(() => {
+  return showOnlyFavorites
+    ? userCards.filter((card) => card.favourite)
+    : userCards;
+}, [userCards, showOnlyFavorites]);
+
+const currentCard = filteredCards[index] ?? null;
 
   const handleNext = () => {
     setFlipped(false);
     setTimeout(() => 
-      setIndex((prev) => (  (prev + 1) % userCards.length)), 400);
+      setIndex((prev) => (  (prev + 1) % filteredCards.length)), 400);
   };
+
+    const handlePrevious = () => {
+    setFlipped(false);
+    setTimeout(() => 
+      setIndex((prev) => (  (prev - 1) % filteredCards.length)), 400);
+  };
+
+const handleToggleFavourite = async (e: React.MouseEvent) => {
+  e.stopPropagation();
+
+  const globalIndex = userCards.findIndex((card) => card.id === currentCard?.id);
+  if (globalIndex === -1 || !currentCard) return;
+
+  // Toggle favourite in DB
+  await toggleFavourite(currentCard.id, currentCard.favourite);
+
+  // Update state
+  setUserCards((prev) => {
+    const updated = [...prev];
+    updated[globalIndex] = {
+      ...currentCard,
+      favourite: !currentCard.favourite,
+    };
+
+    // After update, recalculate filtered list
+    const updatedFiltered = showOnlyFavorites
+      ? updated.filter((c) => c.favourite)
+      : updated;
+
+    // If current card is removed (was favourite, now not), shift index
+    if (
+      showOnlyFavorites &&
+      currentCard.favourite && // was favourite
+      updatedFiltered.length <= index
+    ) {
+      setIndex(Math.max(0, updatedFiltered.length - 1));
+    }
+
+    return updated;
+  });
+};
+
+
 
   const handleLoadUserCards = async () => {
     if (!session.user?.email) return;
-    const data = await getCards(session.user.email);
+    const data = await getCards(session.user.email, undefined);
     setUserCards(data);
   };
 
@@ -36,34 +90,95 @@ export default function FlipCard({ session }: FlipCardProps) {
     const loadCards = async () => {
             if (!session.user?.email) return;
 
-      const data = await getCards(session.user.email);
+      const data = await getCards(session.user.email, selectedCategory ?? undefined);
       setUserCards(data);
     };
 
     loadCards();
-  }, [session.user?.email]); // runs once on mount or when email changes
+  }, [session.user?.email, selectedCategory]); // runs once on mount or when email changes
+
+  useEffect(() => {
+    const uniqueCategories = Array.from(new Set(userCards.map(card => card.group).filter(Boolean)));
+    setCategories(uniqueCategories)
+    console.log(userCards)
+}, [userCards])
 
 
   return (
     <div className={styles.container}>
       <h1>Welcome: {session?.user?.name}</h1>
-        
+      <div className="mb-4">
+  <label className="mr-2 font-medium">Filter by Category:</label>
+  <select
+    value={selectedCategory ?? ""}
+    onChange={(e) => setSelectedCategory(e.target.value || null)}
+    className="p-2 border rounded"
+  >
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category}
+      </option>
+    ))}
+  </select>
+</div>
+        <div className={styles.wrapper}>
+
+        <div className="mb-4 flex items-center gap-2">
+  <label className="font-medium">Show only favorites</label>
+  <button
+    className={`px-3 py-1 rounded ${
+      showOnlyFavorites ? 'bg-yellow-500 text-white' : 'bg-gray-300'
+    }`}
+    onClick={() => {
+      setIndex(0); // Reset index to avoid out-of-range issues
+      setShowOnlyFavorites((prev) => !prev);
+    }}
+  >
+    {showOnlyFavorites ? 'On' : 'Off'}
+  </button>
+</div>
       <div
         className={`${styles.card} ${flipped ? styles.flipped : ""}`}
         onClick={() => setFlipped(!flipped)}
       >
+                
+       {filteredCards[index] && (
+    <div
+      className={styles.favoriteIcon}
+     onClick={handleToggleFavourite}
+    >
+      {filteredCards[index].favourite ? (
+        <Heart color="red" fill="red" size={20} />
+      ) : (
+        <Heart color="gray" size={20} />
+      )}
+    </div>
+  )}
         <div className={styles.inner}>
           <div className={styles.front}>
-            <h2>{userCards[index] ? userCards[index].pLanguageWord : "loading"}</h2>
+            <h1>{currentCard ? currentCard.pLanguageWord : "No cards/loading"}</h1>
           </div>
           <div className={styles.back}>
-            <h1>{userCards[index] ? userCards[index].sLanguageWord : " loading"}</h1>
-          </div>
+            <h1>{currentCard ? currentCard.sLanguageWord : "No cards/loading"}</h1>
+            <p>{currentCard?.pronunciation ? `[${currentCard.pronunciation}]` : ``}</p>
+          </div>  
         </div>
       </div>
-        <button  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleNext}>
-          Next
-        </button>
+        <div className={styles.btnWrapper}>
+          <button  className={`mt-4 px-4 py-2 rounded ${
+    index === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'
+  }`}
+           disabled={index === 0}
+          onClick={handlePrevious}>
+            previous
+          </button>
+          <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          
+          onClick={handleNext}>
+            Next
+          </button>
+        </div>
+        </div>
     </div>
   );
 }
