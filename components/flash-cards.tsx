@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react";
 import styles from "./page.module.css";
 import words from "../data/words.json";
 import { Session } from "next-auth";
@@ -16,9 +16,9 @@ export default function FlipCard({ session }: FlipCardProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [userCards, setUserCards] = useState<any[]>([]); // state for DB results
-const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-const [categories, setCategories] = useState<string[]>([]);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
 
 const filteredCards = useMemo(() => {
   return showOnlyFavorites
@@ -97,12 +97,17 @@ const handleToggleFavourite = async (e: React.MouseEvent) => {
     loadCards();
   }, [session.user?.email, selectedCategory]); // runs once on mount or when email changes
 
-  useEffect(() => {
-    const uniqueCategories = Array.from(new Set(userCards.map(card => card.group).filter(Boolean)));
-    setCategories(uniqueCategories)
-    console.log(userCards)
-}, [userCards])
+const hasInitializedCategories = useRef(false);
 
+useEffect(() => {
+  if (!hasInitializedCategories.current && userCards.length > 0) {
+    const uniqueCategories = Array.from(
+      new Set(userCards.map(card => card.group).filter(Boolean))
+    );
+    setCategories(uniqueCategories);
+    hasInitializedCategories.current = true; // prevent re-running
+  }
+}, [userCards]);
 
   return (
     <div className={styles.container}>
