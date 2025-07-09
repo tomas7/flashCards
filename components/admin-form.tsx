@@ -77,6 +77,10 @@ export default function AdminForm({ session }: Props) {
           <label className="block font-medium mb-1">Pronunciation</label>
           <input name="pronunciation" type="text" className="w-full p-2 border rounded" />
         </div>
+          <div>
+          <label className="block font-medium mb-1">Group</label>
+          <input name="group" type="text" className="w-full p-2 border rounded" />
+        </div>
 
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Add Flashcard
