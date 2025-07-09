@@ -7,6 +7,7 @@ import { Session } from "next-auth";
 import { getCards } from "../actions/getCards"; // adjust path if needed
 import { Heart } from "lucide-react"; // or any icon library you prefer
 import { toggleFavourite } from "@/actions/toggleFavourite";
+import Link from "next/link";
 
 type FlipCardProps = {
   session: Session;
@@ -182,7 +183,11 @@ useEffect(() => {
           onClick={handleNext}>
             Next
           </button>
-        </div>
+          
+        </div><Link   target="_blank"
+  rel="noopener noreferrer"
+  className="text-blue-600 hover:underline font-medium" href={`https://ordnet.dk/ddo/ordbog?query=${currentCard?.sLanguageWord}`}
+ >To ordnet</Link>
         </div>
     </div>
   );
