@@ -12,7 +12,6 @@
     "start": "next start"
   },
   "author": "Tomas H",
- 
   "dependencies": {
     "@auth/unstorage-adapter": "^2.0.0",
     "@neondatabase/serverless": "^1.0.1",
@@ -23,6 +22,8 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@simplewebauthn/server": "^9.0.3",
     "@vercel/kv": "^1.0.1",
+    "axios": "^1.10.0",
+    "cheerio": "^1.1.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "lucide-react": "^0.274.0",

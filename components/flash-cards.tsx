@@ -14,6 +14,8 @@ type FlipCardProps = {
 };
 
 export default function FlipCard({ session }: FlipCardProps) {
+const [citats, setCitats] = useState<string[]>([]);
+
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [userCards, setUserCards] = useState<any[]>([]); // state for DB results
@@ -100,6 +102,8 @@ const handleToggleFavourite = async (e: React.MouseEvent) => {
 
 const hasInitializedCategories = useRef(false);
 
+
+
 useEffect(() => {
   if (!hasInitializedCategories.current && userCards.length > 0) {
     const uniqueCategories = Array.from(
@@ -110,6 +114,29 @@ useEffect(() => {
   }
 }, [userCards]);
 
+useEffect(() => {
+  const fetchCitats = async () => {
+    try {
+      const res = await fetch(`/api/ordnet?query=${currentCard?.sLanguageWord}`);
+      const data = await res.json();
+ 
+      console.log(data.citat);
+      if (Array.isArray(data.citat)) {
+        setCitats(data.citat);
+        
+      } else {
+        setCitats([data.citat]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch citats:", error);
+      setCitats([]);
+    }
+  };
+
+  if (currentCard?.sLanguageWord) {
+    fetchCitats();
+  }
+}, [currentCard?.sLanguageWord]);
   return (
     <div className={styles.container}>
       <h1>Welcome: {session?.user?.name}</h1>
@@ -188,6 +215,16 @@ useEffect(() => {
   rel="noopener noreferrer"
   className="text-blue-600 hover:underline font-medium" href={`https://ordnet.dk/ddo/ordbog?query=${currentCard?.sLanguageWord}`}
  >To ordnet</Link>
+  {citats.length > 0 ? (
+  citats.map((c, idx) => (
+    <p key={idx} className="italic text-gray-800 mb-2">
+      {c}
+    </p>
+  ))
+) : (
+  <p className="italic text-gray-500">Loading or no citations found...</p>
+)}
+
         </div>
     </div>
   );
