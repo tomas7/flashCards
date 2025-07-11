@@ -6,6 +6,7 @@ import { insertCard } from "../actions/insertCards";
 import { getCards } from "../actions/getCards";
 import { updateCard } from "../actions/updateCard";
 import { deleteCard } from "../actions/deleteCard";
+import { useSearchParams } from 'next/navigation'; // for client-side search params
 
 type Props = {
   session: Session;
@@ -16,14 +17,15 @@ export default function AdminForm({ session }: Props) {
   
   const [updatedCards, setUpdatedCards] = useState<Record<string, { primary: string; secondary: string; pronunciation: string, group: string}>>({});
 
+ const searchParams = useSearchParams();
+  const prefill = searchParams.get('prefill') || '';
+
   useEffect(() => {
-    
     const fetchCards = async () => {
       if (!session?.user?.email) return;
       const data = await getCards(session.user.email, undefined);
       setCards(data);
     };
-
     fetchCards();
   }, [session?.user?.email]);
 
@@ -65,12 +67,17 @@ export default function AdminForm({ session }: Props) {
         <input type="hidden" name="email" value={session.user.email!} />
         <div>
           <label className="block font-medium mb-1">English</label>
-          <input name="primary" type="text" required className="w-full p-2 border rounded" />
-        </div>
+<input
+  name="primary"
+  type="text"
+  required
+  className="w-full p-2 border rounded"
+/>        </div>
 
         <div>
           <label className="block font-medium mb-1">Danish</label>
-          <input name="secondary" type="text" required className="w-full p-2 border rounded" />
+          <input name="secondary" type="text" required className="w-full p-2 border rounded"   defaultValue={prefill}
+/>
         </div>
 
           <div>

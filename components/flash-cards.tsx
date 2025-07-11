@@ -22,6 +22,7 @@ const [citats, setCitats] = useState<string[]>([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
+  const [selectedWord, setSelectedWord] = useState(null);
 
 const filteredCards = useMemo(() => {
   return showOnlyFavorites
@@ -137,6 +138,15 @@ useEffect(() => {
     fetchCitats();
   }
 }, [currentCard?.sLanguageWord]);
+
+
+  const handleWordClick = (word: any) => {
+    setSelectedWord(word);
+  };
+
+  const closeModal = () => {
+    setSelectedWord(null);
+  };
   return (
     <div className={styles.container}>
       <h1>Welcome: {session?.user?.name}</h1>
@@ -215,15 +225,65 @@ useEffect(() => {
   rel="noopener noreferrer"
   className="text-blue-600 hover:underline font-medium" href={`https://ordnet.dk/ddo/ordbog?query=${currentCard?.sLanguageWord}`}
  >To ordnet</Link>
-  {citats.length > 0 ? (
-  citats.map((c, idx) => (
-    <p key={idx} className="italic text-gray-800 mb-2">
-      {c}
-    </p>
-  ))
-) : (
-  <p className="italic text-gray-500">Loading or no citations found...</p>
-)}
+ 
+   {flipped && (
+        citats.length > 0 ? (
+          citats.map((c, idx) => (
+            <p key={idx} className="italic text-gray-800 mb-2">
+              {c.split(' ').map((word, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleWordClick(word)}
+                  className="text-blue-600 hover:underline mr-1"
+                >
+                  {word}
+                </button>
+              ))}
+            </p>
+          ))
+        ) : (
+          <p className="italic text-gray-500">Loading or no citations found...</p>
+        )
+      )}
+
+      {/* Modal */}
+      {selectedWord && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-xs w-full text-center">
+            <h2 className="text-lg font-semibold mb-4">What do you want to do with <span className="text-blue-700">{selectedWord}</span>?</h2>
+            <div className="flex flex-col gap-3">
+              <a
+                href={`https://translate.google.com/?sl=da&tl=en&text=${encodeURIComponent(selectedWord)}%0A&op=translate`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Translate on Google
+              </a>
+              <a
+                href={`https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(selectedWord)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+              >
+                Look up in Ordbog
+              </a>
+              <button
+                onClick={closeModal}
+                className="text-sm text-gray-500 mt-2 hover:underline"
+              >
+                Cancel
+              </button>
+                <a
+              href={`/admin?prefill=${encodeURIComponent(selectedWord)}`}
+              className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+            >
+              Add to Flashcards
+            </a>
+            </div>
+          </div>
+        </div>
+      )}
 
         </div>
     </div>
