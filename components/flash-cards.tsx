@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react";
-import styles from "./page.module.css";
+import styles from "./page.module.scss";
 import words from "../data/words.json";
 import { Session } from "next-auth";
 import { getCards } from "../actions/getCards"; // adjust path if needed
 import { Heart } from "lucide-react"; // or any icon library you prefer
 import { toggleFavourite } from "@/actions/toggleFavourite";
 import Link from "next/link";
+import CardsStack from "./flash-cards-stack";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type FlipCardProps = {
   session: Session;
@@ -23,6 +25,7 @@ const [citats, setCitats] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedWord, setSelectedWord] = useState(null);
+const [visibleCards, setVisibleCards] = useState<any[]>([]);
 
 const filteredCards = useMemo(() => {
   return showOnlyFavorites
@@ -30,13 +33,25 @@ const filteredCards = useMemo(() => {
     : userCards;
 }, [userCards, showOnlyFavorites]);
 
-const currentCard = filteredCards[index] ?? null;
+const currentCards = filteredCards[index] ?? null;
 
-  const handleNext = () => {
-    setFlipped(false);
-    setTimeout(() => 
-      setIndex((prev) => (  (prev + 1) % filteredCards.length)), 400);
-  };
+const handleNext = () => {
+  if (index >= filteredCards.length - 1) return;
+
+  setFlipped(false);
+
+  // Animate card out
+  const cardElement = document.querySelector(`#card-${visibleCards[0]?.id}`);
+  if (cardElement) {
+    (cardElement as HTMLElement).style.transform = "translateX(150%) rotate(10deg)";
+    (cardElement as HTMLElement).style.opacity = "0";
+  }
+
+  setTimeout(() => {
+    setIndex((prev) => prev + 1);
+  }, 300); // Delay must match the CSS transition duration
+};
+
 
     const handlePrevious = () => {
     setFlipped(false);
@@ -44,32 +59,28 @@ const currentCard = filteredCards[index] ?? null;
       setIndex((prev) => (  (prev - 1) % filteredCards.length)), 400);
   };
 
-const handleToggleFavourite = async (e: React.MouseEvent) => {
+const handleToggleFavourite = async (e: React.MouseEvent, card: any) => {
   e.stopPropagation();
 
-  const globalIndex = userCards.findIndex((card) => card.id === currentCard?.id);
-  if (globalIndex === -1 || !currentCard) return;
+  const globalIndex = userCards.findIndex((c) => c.id === card.id);
+  if (globalIndex === -1 || !card) return;
 
-  // Toggle favourite in DB
-  await toggleFavourite(currentCard.id, currentCard.favourite);
+  await toggleFavourite(card.id, card.favourite);
 
-  // Update state
   setUserCards((prev) => {
     const updated = [...prev];
     updated[globalIndex] = {
-      ...currentCard,
-      favourite: !currentCard.favourite,
+      ...card,
+      favourite: !card.favourite,
     };
 
-    // After update, recalculate filtered list
     const updatedFiltered = showOnlyFavorites
       ? updated.filter((c) => c.favourite)
       : updated;
 
-    // If current card is removed (was favourite, now not), shift index
     if (
       showOnlyFavorites &&
-      currentCard.favourite && // was favourite
+      card.favourite &&
       updatedFiltered.length <= index
     ) {
       setIndex(Math.max(0, updatedFiltered.length - 1));
@@ -86,7 +97,20 @@ const handleToggleFavourite = async (e: React.MouseEvent) => {
     const data = await getCards(session.user.email, undefined);
     setUserCards(data);
   };
+useEffect(() => {
+  const nextCards = filteredCards.slice(index, index + 4);
+  setVisibleCards(nextCards);
+}, [filteredCards, index]);
 
+const router = useRouter();
+
+useEffect(() => {
+  if (filteredCards[index]?.pLanguageWord) {
+    const word = encodeURIComponent(filteredCards[index].pLanguageWord);
+    const newUrl = `?word=${word}`;
+    router.replace(newUrl);
+  }
+}, [index, filteredCards, router]);
     useEffect(() => {
     // only run if email exists
     if (!session.user?.email) return;
@@ -118,10 +142,9 @@ useEffect(() => {
 useEffect(() => {
   const fetchCitats = async () => {
     try {
-      const res = await fetch(`/api/ordnet?query=${currentCard?.sLanguageWord}`);
+      const res = await fetch(`/api/ordnet?query=${currentCards?.sLanguageWord}`);
       const data = await res.json();
  
-      console.log(data.citat);
       if (Array.isArray(data.citat)) {
         setCitats(data.citat);
         
@@ -134,12 +157,25 @@ useEffect(() => {
     }
   };
 
-  if (currentCard?.sLanguageWord) {
+  if (currentCards?.sLanguageWord) {
     fetchCitats();
   }
-}, [currentCard?.sLanguageWord]);
+}, [currentCards?.sLanguageWord]);
 
+const searchParams = useSearchParams();
 
+// Initialize index from the URL
+useEffect(() => {
+  const paramWord = searchParams.get("word");
+  if (!paramWord || !filteredCards.length) return;
+
+  const cardIndex = filteredCards.findIndex(
+    (card) => card.pLanguageWord === paramWord
+  );
+  if (cardIndex !== -1) {
+    setIndex(cardIndex);
+  }
+}, [searchParams, filteredCards]);
   const handleWordClick = (word: any) => {
     setSelectedWord(word);
   };
@@ -180,71 +216,81 @@ useEffect(() => {
     {showOnlyFavorites ? 'On' : 'Off'}
   </button>
 </div>
-      <div
-        className={`${styles.card} ${flipped ? styles.flipped : ""}`}
-        onClick={() => setFlipped(!flipped)}
-      >
+     
                 
-       {filteredCards[index] && (
+   <h3>{`${index + 1}/${userCards.length }`}</h3>
+<div className={styles.stackContainer}>
+
+  {visibleCards.map((card, i) => (
     <div
-      className={styles.favoriteIcon}
-     onClick={handleToggleFavourite}
+      id={`card-${card.id}`}
+      key={card.id}
+      className={`${styles.card} ${i === 0 && flipped ? styles.flipped : ""}`}
+      style={{
+        zIndex: 10 - i,
+        transform: `translate(${i * 20}px, ${i * 5}px) scale(${1 - i * 0.05})`,
+        transition: "all 0.3s ease",
+        position: "absolute",
+        top: 0,
+        left: 0,
+      }}
+      onClick={() => {
+        if (i === 0) setFlipped(!flipped);
+      }}
     >
-      {filteredCards[index].favourite ? (
-        <Heart color="red" fill="red" size={20} />
-      ) : (
-        <Heart color="gray" size={20} />
-      )}
+      <CardsStack
+        currentCards={card}
+        
+        filteredCards={filteredCards}
+  handleToggleFavourite={(e) => handleToggleFavourite(e, card)}
+        index={index}
+        isTopCard={i === 0}
+      />
     </div>
-  )}
-        <div className={styles.inner}>
-          <div className={styles.front}>
-            <h1>{currentCard ? currentCard.pLanguageWord : "No cards/loading"}</h1>
-          </div>
-          <div className={styles.back}>
-            <h1>{currentCard ? currentCard.sLanguageWord : "No cards/loading"}</h1>
-            <p>{currentCard?.pronunciation ? `[${currentCard.pronunciation}]` : ``}</p>
-          </div>  
-        </div>
-      </div>
+  ))}
+</div>
+
         <div className={styles.btnWrapper}>
-          <button  className={`mt-4 px-4 py-2 rounded ${
-    index === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'
-  }`}
+          <button 
            disabled={index === 0}
           onClick={handlePrevious}>
-            previous
+            Back
           </button>
-          <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+
+         <button
+  disabled={!currentCards?.sLanguageWord}
+  onClick={() => {
+    const url = `https://ordnet.dk/ddo/ordbog?query=${encodeURIComponent(currentCards?.sLanguageWord ?? "")}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }}
+>
+            To Ornet
+          </button>
+          <button
           
           onClick={handleNext}>
             Next
           </button>
           
-        </div><Link   target="_blank"
-  rel="noopener noreferrer"
-  className="text-blue-600 hover:underline font-medium" href={`https://ordnet.dk/ddo/ordbog?query=${currentCard?.sLanguageWord}`}
- >To ordnet</Link>
+        </div>
  
-   {flipped && (
-        citats.length > 0 ? (
-          citats.map((c, idx) => (
-            <p key={idx} className="italic text-gray-800 mb-2">
-              {c.split(' ').map((word, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleWordClick(word)}
-                  className="text-blue-600 hover:underline mr-1"
-                >
-                  {word}
-                </button>
-              ))}
-            </p>
-          ))
-        ) : (
-          <p className="italic text-gray-500">Loading or no citations found...</p>
-        )
-      )}
+ {flipped && Array.isArray(citats) && citats.length > 0 &&
+  citats
+    .filter(c => typeof c === 'string' && c.trim() !== '') // ✅ Safe check
+    .map((c, idx) => (
+      <p key={idx} className="italic text-gray-800 mb-2">
+        {c.split(' ').map((word, i) => (
+          <button
+            key={i}
+            onClick={() => handleWordClick(word)}
+            className="text-blue-600 hover:underline mr-1"
+          >
+            {word}
+          </button>
+        ))}
+      </p>
+    ))
+}
 
       {/* Modal */}
       {selectedWord && (

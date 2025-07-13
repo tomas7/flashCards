@@ -14,7 +14,11 @@ type Props = {
 
 export default function AdminForm({ session }: Props) {
   const [cards, setCards] = useState<any[]>([]);
-  
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+const [searchTerm, setSearchTerm] = useState("")
+const groups = Array.from(
+  new Set(cards.map(card => card.group).filter(Boolean)) // Exclude empty/null
+);
   const [updatedCards, setUpdatedCards] = useState<Record<string, { primary: string; secondary: string; pronunciation: string, group: string}>>({});
 
  const searchParams = useSearchParams();
@@ -28,6 +32,10 @@ export default function AdminForm({ session }: Props) {
     };
     fetchCards();
   }, [session?.user?.email]);
+
+    useEffect(() => {
+    setSearchTerm(prefill)
+  }, [prefill]);
 
   const handleUpdate = async (id: string) => {
     const updates = updatedCards[id];
@@ -63,21 +71,24 @@ export default function AdminForm({ session }: Props) {
   return (
     <div className="space-y-8 max-w-2xl mx-auto p-4">
       {/* Add Flashcard Form */}
+            <h2 className="text-2xl font-bold mb-4">Add a new word</h2>
+
       <form action={insertCard} className="space-y-4 bg-gray-50 p-4 rounded shadow">
         <input type="hidden" name="email" value={session.user.email!} />
         <div>
           <label className="block font-medium mb-1">English</label>
-<input
-  name="primary"
-  type="text"
-  required
-  className="w-full p-2 border rounded"
-/>        </div>
-
+          <input
+            name="primary"
+            type="text"
+            required
+            className="w-full p-2 border rounded"
+          />        
+        </div>
+    
         <div>
           <label className="block font-medium mb-1">Danish</label>
           <input name="secondary" type="text" required className="w-full p-2 border rounded"   defaultValue={prefill}
-/>
+          />
         </div>
 
           <div>
@@ -95,9 +106,43 @@ export default function AdminForm({ session }: Props) {
       </form>
 
       {/* Flashcard List for Editing */}
+      
       <div className="space-y-4">
+        <div className="my-4">
+                      <h2 className="text-2xl font-bold mb-4">Or edit existing</h2>
+
+  <label className="font-medium mr-2">Filter by Group:</label>
+  <select
+    value={selectedGroup ?? ""}
+    onChange={(e) => setSelectedGroup(e.target.value || null)}
+    className="p-2 border rounded"
+  >
+    <option value="">All</option>
+    {groups.map((group) => (
+      <option key={group} value={group}>
+        {group}
+      </option>
+    ))}
+  </select>
+  <div className="my-4">
+  <label className="font-medium mr-2">Search:</label>
+  <input
+    type="text"
+    placeholder="Search English or Danish..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="p-2 border rounded w-full md:w-1/2"
+  />
+</div>
+</div>
         <h2 className="text-lg font-semibold">Your Flashcards</h2>
-        {cards.map((card) => (
+      {cards
+  .filter(card => 
+    (!selectedGroup || card.group === selectedGroup) &&
+    (card.pLanguageWord?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     card.sLanguageWord?.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
+  .map((card) => (
           <div key={card.id} className="border p-3 rounded bg-white shadow-sm space-y-2">
             <label>English</label>
 

@@ -15,20 +15,25 @@ import {
 } from "./ui/navigation-menu"
 import React from "react"
 import { Button } from "./ui/button"
-
+import { useRouter } from 'next/navigation'
 export function MainNav() {
+    const router = useRouter();
+
   return (
-    <div className="flex items-center gap-4">
-
+  <div className="flex items-center gap-4">
       <NavigationMenu>
-        <NavigationMenuList>
-              <NavigationMenuLink href="/">
-      Home
-</NavigationMenuLink>
-            <NavigationMenuLink href="/admin">
-      Admin
-</NavigationMenuLink>
+        <NavigationMenuList className="flex gap-x-4">
+          <NavigationMenuLink
+            asChild
+          >
+            <button onClick={() => router.back()} className="text-blue-600 hover:underline">
+              Back
+            </button>
+          </NavigationMenuLink>
 
+          <NavigationMenuLink href="/admin">
+            Dashboard
+          </NavigationMenuLink>
         </NavigationMenuList>
       </NavigationMenu>
     </div>
