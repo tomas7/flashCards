@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useLayoutEffect, useRef, useCallback } from "react";
 import styles from "./page.module.scss";
 import words from "../data/words.json";
 import { Session } from "next-auth";
@@ -16,6 +16,7 @@ type FlipCardProps = {
 };
 
 export default function FlipCard({ session }: FlipCardProps) {
+
 const [citats, setCitats] = useState<string[]>([]);
 
   const [index, setIndex] = useState(0);
@@ -95,41 +96,40 @@ const handleToggleFavourite = async (e: React.MouseEvent, card: any) => {
   const handleLoadUserCards = async () => {
     if (!session.user?.email) return;
     const data = await getCards(session.user.email, undefined);
+    
     setUserCards(data);
   };
+  const router = useRouter();
+  const hasInitializedCategories = useRef(false);
+
+// useEffect(() => {
+//   const nextCards = filteredCards.slice(index, index + 4);
+//   setVisibleCards(nextCards);
+// }, [filteredCards, index]);
 useEffect(() => {
   const nextCards = filteredCards.slice(index, index + 4);
   setVisibleCards(nextCards);
-}, [filteredCards, index]);
-
-const router = useRouter();
-
-useEffect(() => {
-  if (filteredCards[index]?.pLanguageWord) {
-    const word = encodeURIComponent(filteredCards[index].pLanguageWord);
-    const newUrl = `?word=${word}`;
+  console.log(1)
+  if (nextCards[index]?.pLanguageWord) {
+    const word = encodeURIComponent(nextCards[index].pLanguageWord);
+    const newUrl = `?word=${word}&group=${selectedCategory ? selectedCategory : categories[1]}`;
     router.replace(newUrl);
   }
-}, [index, filteredCards, router]);
-    useEffect(() => {
-    // only run if email exists
-    if (!session.user?.email) return;
+}, [index, filteredCards, router, categories]);
 
-    const loadCards = async () => {
-            if (!session.user?.email) return;
+const loadCards = useCallback(async () => {
+  if (!session.user?.email) return;
+  const data = await getCards(session.user.email, selectedCategory ?? undefined);
+  setUserCards(data);
+}, [session.user?.email, selectedCategory]);
 
-      const data = await getCards(session.user.email, selectedCategory ?? undefined);
-      setUserCards(data);
-    };
-
-    loadCards();
-  }, [session.user?.email, selectedCategory]); // runs once on mount or when email changes
-
-const hasInitializedCategories = useRef(false);
-
+useEffect(() => {
+  loadCards();
+}, [loadCards]);
 
 
 useEffect(() => {
+    console.log(3)
   if (!hasInitializedCategories.current && userCards.length > 0) {
     const uniqueCategories = Array.from(
       new Set(userCards.map(card => card.group).filter(Boolean))
@@ -140,6 +140,7 @@ useEffect(() => {
 }, [userCards]);
 
 useEffect(() => {
+    console.log(4)
   const fetchCitats = async () => {
     try {
       const res = await fetch(`/api/ordnet?query=${currentCards?.sLanguageWord}`);
@@ -166,16 +167,20 @@ const searchParams = useSearchParams();
 
 // Initialize index from the URL
 useEffect(() => {
+    console.log(5)
   const paramWord = searchParams.get("word");
-  if (!paramWord || !filteredCards.length) return;
-
-  const cardIndex = filteredCards.findIndex(
+  const paramCategory = searchParams.get("category");
+  if (!paramWord || !filteredCards.length || !paramCategory) return;
+let filteredCardsTemp = filteredCards.filter(e => e.group)
+  const cardIndex = filteredCardsTemp.findIndex(
     (card) => card.pLanguageWord === paramWord
   );
   if (cardIndex !== -1) {
     setIndex(cardIndex);
   }
 }, [searchParams, filteredCards]);
+
+
   const handleWordClick = (word: any) => {
     setSelectedWord(word);
   };
