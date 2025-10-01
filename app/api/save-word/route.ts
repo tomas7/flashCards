@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
 import { neon } from "@neondatabase/serverless"
+import { jwtVerify } from "jose"
 
 const sql = neon(process.env.DATABASE_URL!)
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "*", // you can restrict to your extension ID later
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 }
@@ -21,15 +21,31 @@ function withCORS(body: any, init?: ResponseInit) {
 }
 
 export async function OPTIONS() {
-  // Preflight needs to return the headers too
   return withCORS({})
 }
 
-export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, raw: true })
+async function verifyToken(req: NextRequest) {
+  const authHeader = req.headers.get("authorization")
+  if (!authHeader) return null
 
-  if (!token) {
-    return withCORS({ error: "Unauthorized", token: token }, { status: 401 })
+  const token = authHeader.split(" ")[1]
+  if (!token) return null
+
+  try {
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
+    const { payload } = await jwtVerify(token, secret)
+    return payload
+  } catch (err) {
+    console.error("JWT verification failed:", err)
+    return null
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const payload = await verifyToken(req)
+
+  if (!payload?.email) {
+    return withCORS({ error: "Unauthorized", payload }, { status: 401 })
   }
 
   try {
@@ -40,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO saved_words (email, word)
-      VALUES (${token.email}, ${word})
+      VALUES (${payload.email}, ${word})
     `
 
     return withCORS({ success: true })
