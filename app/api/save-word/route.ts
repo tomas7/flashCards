@@ -28,7 +28,7 @@ export async function OPTIONS() {
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, raw: true })
 
-  if (!token?.email) {
+  if (!token) {
     return withCORS({ error: "Unauthorized", token: token }, { status: 401 })
   }
 
