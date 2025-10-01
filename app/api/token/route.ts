@@ -5,7 +5,7 @@ export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
   // Try cookie first
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET, cookieName: "__Secure-authjs.session-token" })
 
   if (!token) {
     return NextResponse.json({ error: "token missing" }, { status: 401 })
