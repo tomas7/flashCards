@@ -5,7 +5,7 @@ import { neon } from "@neondatabase/serverless"
 const sql = neon(process.env.DATABASE_URL!)
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "chrome-extension://jddcomodfaipifkbdfhkenbhbccmcebf",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 }
