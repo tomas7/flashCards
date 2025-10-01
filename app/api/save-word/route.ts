@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
 
   if (!token?.email) {
-    return withCORS({ error: "Unauthorized" }, { status: 401 })
+    return withCORS({ error: "Unauthorized", token: token }, { status: 401 })
   }
 
   try {
