@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
 
   // Extract the raw JWT
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-
+  console.log("Token from getToken:", token)
   if (!token) {
-    return NextResponse.json({ error: "token missing" }, { status: 401 })
+    return NextResponse.json({ error: "token missing" }, { status: 404 })
   }
 
   return NextResponse.json({
