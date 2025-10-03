@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
-import { jwtVerify } from "jose"
+import { jwtVerify, jwtDecrypt  } from "jose"
 
 const sql = neon(process.env.DATABASE_URL!)
 
@@ -23,7 +23,6 @@ function withCORS(body: any, init?: ResponseInit) {
 export async function OPTIONS() {
   return withCORS({})
 }
-
 async function verifyToken(req: NextRequest) {
   const authHeader = req.headers.get("authorization")
   if (!authHeader) return null
@@ -33,13 +32,14 @@ async function verifyToken(req: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
-    const { payload } = await jwtVerify(token, secret)
+    const { payload } = await jwtDecrypt(token, secret)
     return payload
   } catch (err) {
-    console.error("JWT verification failed:", err)
+    console.error("JWT decryption failed:", err)
     return null
   }
 }
+
 
 export async function POST(req: NextRequest) {
   const payload = await verifyToken(req)
