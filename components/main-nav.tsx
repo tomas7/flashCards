@@ -13,10 +13,29 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "./ui/navigation-menu"
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Button } from "./ui/button"
 import { useRouter } from 'next/navigation'
-export function MainNav() {
+import { Session } from "next-auth"
+import { getAwaitingApprovals } from "@/actions/getAwaitingApprovals"
+type Props = {
+  session: Session | null;
+};
+
+export function MainNav({ session }: Props) {
+
+    const [awaitingApprovals, setAwaitingApprovals] = useState<{ id: string, word: string, email: string }[]>([]);
+    if (!session) return
+
+    useEffect(() => {
+      const fetchCards = async () => {
+        if (!session?.user?.email) return;
+        const data = await getAwaitingApprovals(session.user.email);
+        setAwaitingApprovals(data);
+      };
+      fetchCards();
+    }, [session?.user?.email]);
+
     const router = useRouter();
 
   return (
@@ -33,6 +52,14 @@ export function MainNav() {
 
           <NavigationMenuLink href="/admin">
             Dashboard
+          </NavigationMenuLink>
+          <NavigationMenuLink href="/awaitingApproval">
+              <span>Approvals</span>
+                {awaitingApprovals.length > 0 && (
+                  <span className="bg-red-600 text-white ml-1 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {awaitingApprovals.length}
+                  </span>
+                )}
           </NavigationMenuLink>
         </NavigationMenuList>
       </NavigationMenu>
