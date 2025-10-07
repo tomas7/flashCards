@@ -25,8 +25,7 @@ type Props = {
 export function MainNav({ session }: Props) {
 
     const [awaitingApprovals, setAwaitingApprovals] = useState<{ id: string, word: string, email: string }[]>([]);
-    if (!session) return
-
+  
     useEffect(() => {
       const fetchCards = async () => {
         if (!session?.user?.email) return;
